@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Redeem Wale</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#120f0b;--card:#221b15;--soft:#3a2f25;--text:#f5e9dc;--mute:#9b8d7d;--o1:#e85d0c;--o2:#f28c00;--ok:#2fb36d;--bad:#d9534f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:480px;margin:0 auto;padding:14px 14px 40px}
+h1{font-size:20px;margin:6px 4px 14px}
+.seg{display:flex;gap:8px;margin-bottom:14px}
+.seg button{flex:1;padding:12px;border-radius:14px;background:var(--card);color:var(--mute);font-weight:600}
+.seg button.on{background:linear-gradient(90deg,var(--o1),var(--o2));color:#fff}
+.card{background:var(--card);border-radius:26px;padding:18px;margin-bottom:16px}
+.img{height:120px;border-radius:18px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;margin-bottom:16px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.45)}
+.img b{font-size:38px}.img small{display:block;opacity:.9;letter-spacing:2px;font-size:11px}.img .d{font-size:54px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.title{font-size:20px;font-weight:600}
+.pill{background:#3a2a16;color:#ff9a3c;font-weight:700;padding:10px 18px;border-radius:30px;font-size:18px}
+.bar{height:16px;border-radius:10px;background:var(--soft);margin:16px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--o1),var(--o2));transition:width .3s}
+.pct{display:flex;justify-content:space-between;color:var(--mute);font-size:15px;margin-bottom:12px}
+button{font:inherit;border:0;cursor:pointer;color:#fff}
+button:disabled{opacity:.55;cursor:default}
+.watch{width:100%;padding:18px;border-radius:20px;font-size:20px;font-weight:600;background:linear-gradient(90deg,var(--o1),var(--o2));box-shadow:0 6px 22px rgba(232,93,12,.3)}
+.claim{margin-top:12px;padding:16px 28px;border-radius:18px;font-size:19px;font-weight:600;background:#2a241c;color:var(--text)}
+.claim.on{background:var(--ok);color:#fff;opacity:1}
+.note{margin-top:12px;color:var(--ok);font-weight:600}
+.msg{text-align:center;color:var(--mute);padding:40px 10px}
+input[type=text],input[type=number]{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--soft);background:#17120d;color:var(--text);font:inherit;margin:4px 0 10px}
+label{font-size:13px;color:var(--mute)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns button,.btns a{padding:11px 16px;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;color:#fff;background:var(--soft)}
+.b-ok{background:var(--ok)!important}.b-bad{background:var(--bad)!important}.b-or{background:linear-gradient(90deg,var(--o1),var(--o2))!important}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.t-p{background:#4a3410;color:#ffb347}.t-d{background:#143a26;color:#5fd08f}
+.chk{display:flex;align-items:center;gap:8px;margin-bottom:10px;color:var(--text)}
+.chk input{width:20px;height:20px}
+.support{position:fixed;right:16px;bottom:22px;z-index:20;background:#25D366;color:#fff;text-decoration:none;border-radius:999px;padding:12px 16px;font-weight:700;box-shadow:0 5px 18px #0008;display:flex;align-items:center;gap:8px}
+.codebox{margin-top:12px;padding:12px;border-radius:12px;background:#143a26;color:#8ff0b5;overflow-wrap:anywhere;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎁 Free Fire Redeem Codes</h1>
+  <div id="seg"></div>
+  <div id="main"><div class="msg">Loading...</div></div>
+</div>
+<a class="support" href="https://wa.me/917485003609?text=Hello%20REDEEM%20WALE%20Support" target="_blank" rel="noopener">🟢 WhatsApp Support</a>
+<script>
+// ===== SETTINGS =====
+var firebaseConfig = {
+  apiKey: "AIzaSyARLNDI3_5ea5sTU_2XBV-fMTOK9LhXRG8",
+  authDomain: "redeem-wale.firebaseapp.com",
+  projectId: "redeem-wale",
+  storageBucket: "redeem-wale.firebasestorage.app",
+  messagingSenderId: "913832785008",
+  appId: "1:913832785008:web:e3fe6ced8593be886a70b5",
+  measurementId: "G-789XZQXKBD"
+};
+var ADMIN_ID = "8547131118";   // admin ka Telegram ID
+var MONETAG_ZONE = "12196759"; // Monetag Zone ID (khali ho to 10 sec ka test timer chalega)
+var TEST_SECONDS = 10;
+// =====================
+
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore(), FV = firebase.firestore.FieldValue;
+var tg = window.Telegram && window.Telegram.WebApp, tu = null;
+if (tg) { try { tg.ready(); tg.expand(); tu = tg.initDataUnsafe && tg.initDataUnsafe.user; } catch (e) {} }
+var uid = tu ? String(tu.id) : "guest";
+var uname = tu ? ((tu.first_name || "") + " " + (tu.last_name || "")).trim() : "Guest";
+var uhandle = (tu && tu.username) || "";
+var isAdmin = uid === ADMIN_ID;
+
+if (MONETAG_ZONE) {
+  var sc = document.createElement("script");
+  sc.src = "//libtl.com/sdk.js";
+  sc.setAttribute("data-zone", MONETAG_ZONE);
+  sc.setAttribute("data-sdk", "show_" + MONETAG_ZONE);
+  document.head.appendChild(sc);
+}
+
+var codes = [], prog = {}, reqs = [], view = "user", tab = "codes", loaded = false, busy = false, err = "";
+var PAL = [["#7c3aed","#c026d3"],["#e85d0c","#f2b200"],["#0ea5e9","#2563eb"],["#16a34a","#65a30d"],["#e11d48","#f97316"]];
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
+function $(id){return document.getElementById(id)}
+function onErr(e){err="Database error: "+(e&&e.message||e)+" (Firestore rules check karo)";render()}
+
+// ---- listeners ----
+db.collection("codes").onSnapshot(function(s){
+  codes=s.docs.map(function(d){var o=d.data();o.id=d.id;return o}).sort(function(a,b){return (a.order||0)-(b.order||0)});
+  loaded=true;
+  if(isAdmin&&s.empty&&!sessionStorage.getItem("seeded")){
+    try{sessionStorage.setItem("seeded","1")}catch(e){}
+    [[10,1,0],[500,2,1]].forEach(function(x,i){db.collection("codes").add({amount:x[0],ads:x[1],active:true,c1:PAL[x[2]][0],c2:PAL[x[2]][1],imageUrl:"",order:i})});
+  }
+  render("codes");
+},onErr);
+db.collection("prog").where("uid","==",uid).onSnapshot(function(s){
+  prog={};s.docs.forEach(function(d){var o=d.data();prog[o.codeId]=o.n||0});render("prog");
+},onErr);
+var rq=isAdmin?db.collection("requests"):db.collection("requests").where("uid","==",uid);
+rq.onSnapshot(function(s){
+  reqs=s.docs.map(function(d){var o=d.data();o.id=d.id;return o}).sort(function(a,b){
+    var x=a.createdAt?a.createdAt.toMillis():9e15,y=b.createdAt?b.createdAt.toMillis():9e15;return y-x});
+  render("reqs");
+},onErr);
+
+// ---- user actions ----
+function watch(id){
+  if(busy)return;busy=true;
+  var btn=$("w-"+id);
+  function add(){db.collection("prog").doc(uid+"_"+id).set({uid:uid,codeId:id,n:FV.increment(1)},{merge:true}).then(function(){busy=false},function(e){busy=false;onErr(e)})}
+  if(MONETAG_ZONE){
+    if(!window["show_"+MONETAG_ZONE]){busy=false;alert("Ad load nahi hua, thodi der baad dobara try karo.");return}
+    if(btn)btn.textContent="Ad chal raha hai...";
+    window["show_"+MONETAG_ZONE]().then(add).catch(function(){busy=false;alert("Ad nahi chala, dobara try karo.");render()});
+  }else{
+    var t=TEST_SECONDS;
+    var iv=setInterval(function(){
+      var b=$("w-"+id);if(b)b.textContent="Ad: "+t+" sec...";
+      if(t--<=0){clearInterval(iv);add()}
+    },1000);
+  }
+}
+function claim(id){
+  var c=codes.filter(function(x){return x.id===id})[0];
+  var alreadyRequested=reqs.some(function(r){return r.uid===uid&&r.codeId===id});
+  if(!c||busy||alreadyRequested||(prog[id]||0)<(c.ads||1))return;
+  busy=true;
+  db.collection("requests").add({uid:uid,name:uname,handle:uhandle,codeId:id,amount:c.amount,status:"pending",createdAt:FV.serverTimestamp()})
+   .then(function(){return db.collection("prog").doc(uid+"_"+id).set({uid:uid,codeId:id,n:0},{merge:true})})
+   .then(function(){busy=false},function(e){busy=false;onErr(e)});
+}
+
+// ---- admin actions ----
+function addCode(){var p=PAL[codes.length%PAL.length];db.collection("codes").add({amount:50,ads:1,active:true,c1:p[0],c2:p[1],imageUrl:"",order:Date.now()})}
+function saveCode(id){
+  db.collection("codes").doc(id).update({amount:Number($("a-"+id).value)||0,ads:Math.max(1,Number($("d-"+id).value)||1),imageUrl:$("i-"+id).value.trim(),active:$("o-"+id).checked})
+   .then(function(){var b=$("s-"+id);if(b){b.textContent="Saved ✓";setTimeout(function(){b.textContent="Save"},1200)}},onErr);
+}
+function delCode(id){if(confirm("Ye code delete kar dein?"))db.collection("codes").doc(id).delete()}
+function deliverReq(id){
+  var field=$("rc-"+id),code=field?field.value.trim():"";
+  if(!code){alert("Pehle actual redeem code enter karo.");return}
+  if(!confirm("Ye redeem code user ko deliver kar dein?"))return;
+  db.collection("requests").doc(id).update({status:"done",redeemCode:code,deliveredAt:FV.serverTimestamp()})
+    .then(function(){alert("Redeem code user ko deliver ho gaya.")},onErr);
+}
+function setView(v){view=v;render()}
+function setTab(t){tab=t;render()}
+
+// ---- render ----
+function render(src){
+  if(isAdmin&&view==="admin"&&tab==="codes"&&(src==="reqs"||src==="prog")&&$("main").dataset.k==="admin-codes")return;
+  var pend=reqs.filter(function(r){return r.status==="pending"}).length;
+  $("seg").innerHTML=isAdmin?'<div class="seg"><button class="'+(view==="user"?"on":"")+'" onclick="setView(\'user\')">🎁 User</button><button class="'+(view==="admin"?"on":"")+'" onclick="setView(\'admin\')">⚙️ Admin'+(pend?" ("+pend+")":"")+'</button></div>':"";
+  var m=$("main");
+  if(err){m.innerHTML='<div class="msg">'+esc(err)+'</div>';m.dataset.k="err";return}
+  if(!loaded){m.innerHTML='<div class="msg">Loading...</div>';return}
+  if(isAdmin&&view==="admin"){
+    var h='<div class="seg"><button class="'+(tab==="codes"?"on":"")+'" onclick="setTab(\'codes\')">Codes</button><button class="'+(tab==="reqs"?"on":"")+'" onclick="setTab(\'reqs\')">Requests'+(pend?" ("+pend+")":"")+'</button></div>';
+    if(tab==="codes"){m.innerHTML=h+adminCodes();m.dataset.k="admin-codes"}
+    else{m.innerHTML=h+adminReqs();m.dataset.k="admin-reqs"}
+    return;
+  }
+  m.dataset.k="user";
+  var act=codes.filter(function(c){return c.active!==false});
+  m.innerHTML=act.length?act.map(card).join(""):'<div class="msg">Abhi koi redeem code available nahi hai.</div>';
+}
+function card(c){
+  var n=prog[c.id]||0,ads=c.ads||1,full=n>=ads,pct=Math.min(100,n/ads*100);
+  var userRequest=reqs.filter(function(r){return r.codeId===c.id&&r.uid===uid})[0];
+  var pend=userRequest&&userRequest.status==="pending";
+  var bg=c.imageUrl?'url("'+esc(c.imageUrl)+'") center/cover':'linear-gradient(135deg,'+esc(c.c1||"#e85d0c")+','+esc(c.c2||"#f2b200")+')';
+  return '<div class="card"><div class="img" style="background:'+bg+'"><div><small>REDEEM CODE</small><b>₹'+esc(c.amount)+'</b></div><div class="d">💎</div></div>'+
+  '<div class="row"><div class="title">⭐ Star Bonus</div><div class="pill">+₹'+esc(c.amount)+'</div></div>'+
+  '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="pct"><span>Progress</span><span>'+pct.toFixed(0)+'%</span></div>'+
+  (userRequest?(userRequest.status==="done"?
+    '<div class="note">✅ Redeem code delivered!</div>'+(userRequest.redeemCode?'<div class="codebox">🎁 Your Redeem Code: '+esc(userRequest.redeemCode)+'</div>':'<div class="note">Admin ne request complete kar di hai.</div>'):
+    '<div class="note">✅ Request admin ko bhej di gayi. Code jaldi milega.</div>'):
+    '<button class="watch" id="w-'+c.id+'" onclick="watch(\''+c.id+'\')" '+(full?'disabled':'')+'>▶ '+(full?'Unlocked':'Watch')+'</button>'+
+    '<button class="claim'+(full?' on':'')+'" onclick="claim(\''+c.id+'\')" '+(full?'':'disabled')+'>'+(full?'🔓':'🔒')+' Claim ₹'+esc(c.amount)+'</button>')+'</div>';
+}
+function adminCodes(){
+  var h='<button class="watch" style="margin-bottom:14px;padding:14px;font-size:17px" onclick="addCode()">➕ Naya Code Add Karo</button>';
+  if(!codes.length)h+='<div class="msg">Koi code nahi hai.</div>';
+  codes.forEach(function(c){
+    h+='<div class="card"><div class="two"><div><label>Price (₹)</label><input type="number" id="a-'+c.id+'" value="'+esc(c.amount)+'"></div><div><label>Ads limit</label><input type="number" id="d-'+c.id+'" value="'+esc(c.ads||1)+'"></div></div>'+
+    '<label>Image link (optional)</label><input type="text" id="i-'+c.id+'" value="'+esc(c.imageUrl||"")+'" placeholder="https://...">'+
+    '<label class="chk"><input type="checkbox" id="o-'+c.id+'" '+(c.active!==false?"checked":"")+'> Users ko dikhao (ON)</label>'+
+    '<div class="btns"><button class="b-ok" id="s-'+c.id+'" onclick="saveCode(\''+c.id+'\')">Save</button><button class="b-bad" onclick="delCode(\''+c.id+'\')">Delete</button></div></div>';
+  });
+  return h;
+}
+function adminReqs(){
+  if(!reqs.length)return '<div class="msg">Abhi koi request nahi aayi.</div>';
+  var p=reqs.filter(function(r){return r.status==="pending"}),d=reqs.filter(function(r){return r.status!=="pending"});
+  return p.concat(d).map(function(r){
+    var t=r.createdAt?r.createdAt.toDate().toLocaleString("en-IN"):"...";
+    var link=r.handle?"https://t.me/"+esc(r.handle):"tg://user?id="+esc(r.uid);
+    return '<div class="card"><div class="row"><div class="title">₹'+esc(r.amount)+'</div><span class="tag '+(r.status==="pending"?"t-p":"t-d")+'">'+(r.status==="pending"?"PENDING":"DONE")+'</span></div>'+
+    '<p style="margin:10px 0;line-height:1.6">👤 '+esc(r.name)+(r.handle?" (@"+esc(r.handle)+")":"")+'<br>🆔 '+esc(r.uid)+'<br>🕒 '+esc(t)+'</p>'+
+    '<div class="btns"><a class="b-or" href="'+link+'" target="_blank">💬 Message</a></div>'+
+    (r.status==="pending"?
+      '<label>Actual redeem code (admin yahan enter kare)</label><input type="text" id="rc-'+r.id+'" placeholder="Enter valid Free Fire redeem code">'+
+      '<button class="b-ok" onclick="deliverReq(\''+r.id+'\')">Send Code to User ✅</button>':
+      (r.redeemCode?'<div class="codebox">Delivered Code: '+esc(r.redeemCode)+'</div>':''))+'</div>';
+  }).join("");
+}
+render();
+</script>
+</body>
+</html>
