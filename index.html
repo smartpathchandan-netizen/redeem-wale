@@ -42,6 +42,8 @@ label{font-size:13px;color:var(--mute)}
 .t-p{background:#4a3410;color:#ffb347}.t-d{background:#143a26;color:#5fd08f}
 .chk{display:flex;align-items:center;gap:8px;margin-bottom:10px;color:var(--text)}
 .chk input{width:20px;height:20px}
+.support{position:fixed;right:16px;bottom:22px;z-index:20;background:#25D366;color:#fff;text-decoration:none;border-radius:999px;padding:12px 16px;font-weight:700;box-shadow:0 5px 18px #0008;display:flex;align-items:center;gap:8px}
+.codebox{margin-top:12px;padding:12px;border-radius:12px;background:#143a26;color:#8ff0b5;overflow-wrap:anywhere;font-weight:700}
 </style>
 </head>
 <body>
@@ -50,6 +52,7 @@ label{font-size:13px;color:var(--mute)}
   <div id="seg"></div>
   <div id="main"><div class="msg">Loading...</div></div>
 </div>
+<a class="support" href="https://wa.me/917485003609?text=Hello%20REDEEM%20WALE%20Support" target="_blank" rel="noopener">🟢 WhatsApp Support</a>
 <script>
 // ===== SETTINGS =====
 var firebaseConfig = {
@@ -129,7 +132,9 @@ function watch(id){
 }
 function claim(id){
   var c=codes.filter(function(x){return x.id===id})[0];
-  if(!c||busy||(prog[id]||0)<(c.ads||1))return;busy=true;
+  var alreadyRequested=reqs.some(function(r){return r.uid===uid&&r.codeId===id});
+  if(!c||busy||alreadyRequested||(prog[id]||0)<(c.ads||1))return;
+  busy=true;
   db.collection("requests").add({uid:uid,name:uname,handle:uhandle,codeId:id,amount:c.amount,status:"pending",createdAt:FV.serverTimestamp()})
    .then(function(){return db.collection("prog").doc(uid+"_"+id).set({uid:uid,codeId:id,n:0},{merge:true})})
    .then(function(){busy=false},function(e){busy=false;onErr(e)});
@@ -142,7 +147,13 @@ function saveCode(id){
    .then(function(){var b=$("s-"+id);if(b){b.textContent="Saved ✓";setTimeout(function(){b.textContent="Save"},1200)}},onErr);
 }
 function delCode(id){if(confirm("Ye code delete kar dein?"))db.collection("codes").doc(id).delete()}
-function doneReq(id){db.collection("requests").doc(id).update({status:"done"})}
+function deliverReq(id){
+  var field=$("rc-"+id),code=field?field.value.trim():"";
+  if(!code){alert("Pehle actual redeem code enter karo.");return}
+  if(!confirm("Ye redeem code user ko deliver kar dein?"))return;
+  db.collection("requests").doc(id).update({status:"done",redeemCode:code,deliveredAt:FV.serverTimestamp()})
+    .then(function(){alert("Redeem code user ko deliver ho gaya.")},onErr);
+}
 function setView(v){view=v;render()}
 function setTab(t){tab=t;render()}
 
@@ -166,14 +177,17 @@ function render(src){
 }
 function card(c){
   var n=prog[c.id]||0,ads=c.ads||1,full=n>=ads,pct=Math.min(100,n/ads*100);
-  var pend=reqs.some(function(r){return r.codeId===c.id&&r.status==="pending"&&r.uid===uid});
+  var userRequest=reqs.filter(function(r){return r.codeId===c.id&&r.uid===uid})[0];
+  var pend=userRequest&&userRequest.status==="pending";
   var bg=c.imageUrl?'url("'+esc(c.imageUrl)+'") center/cover':'linear-gradient(135deg,'+esc(c.c1||"#e85d0c")+','+esc(c.c2||"#f2b200")+')';
   return '<div class="card"><div class="img" style="background:'+bg+'"><div><small>REDEEM CODE</small><b>₹'+esc(c.amount)+'</b></div><div class="d">💎</div></div>'+
   '<div class="row"><div class="title">⭐ Star Bonus</div><div class="pill">+₹'+esc(c.amount)+'</div></div>'+
-  '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="pct"><span>Ads: '+Math.min(n,ads)+'/'+ads+'</span><span>'+pct.toFixed(2)+'%</span></div>'+
-  (pend?'<div class="note">✅ Request admin ko bhej di gayi. Code jaldi milega.</div>':
-  '<button class="watch" id="w-'+c.id+'" onclick="watch(\''+c.id+'\')" '+(full?'disabled':'')+'>▶ '+(full?'Unlocked':'Watch')+'</button>'+
-  '<button class="claim'+(full?' on':'')+'" onclick="claim(\''+c.id+'\')" '+(full?'':'disabled')+'>'+(full?'🔓':'🔒')+' Claim ₹'+esc(c.amount)+'</button>')+'</div>';
+  '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="pct"><span>Progress</span><span>'+pct.toFixed(0)+'%</span></div>'+
+  (userRequest?(userRequest.status==="done"?
+    '<div class="note">✅ Redeem code delivered!</div>'+(userRequest.redeemCode?'<div class="codebox">🎁 Your Redeem Code: '+esc(userRequest.redeemCode)+'</div>':'<div class="note">Admin ne request complete kar di hai.</div>'):
+    '<div class="note">✅ Request admin ko bhej di gayi. Code jaldi milega.</div>'):
+    '<button class="watch" id="w-'+c.id+'" onclick="watch(\''+c.id+'\')" '+(full?'disabled':'')+'>▶ '+(full?'Unlocked':'Watch')+'</button>'+
+    '<button class="claim'+(full?' on':'')+'" onclick="claim(\''+c.id+'\')" '+(full?'':'disabled')+'>'+(full?'🔓':'🔒')+' Claim ₹'+esc(c.amount)+'</button>')+'</div>';
 }
 function adminCodes(){
   var h='<button class="watch" style="margin-bottom:14px;padding:14px;font-size:17px" onclick="addCode()">➕ Naya Code Add Karo</button>';
@@ -194,7 +208,11 @@ function adminReqs(){
     var link=r.handle?"https://t.me/"+esc(r.handle):"tg://user?id="+esc(r.uid);
     return '<div class="card"><div class="row"><div class="title">₹'+esc(r.amount)+'</div><span class="tag '+(r.status==="pending"?"t-p":"t-d")+'">'+(r.status==="pending"?"PENDING":"DONE")+'</span></div>'+
     '<p style="margin:10px 0;line-height:1.6">👤 '+esc(r.name)+(r.handle?" (@"+esc(r.handle)+")":"")+'<br>🆔 '+esc(r.uid)+'<br>🕒 '+esc(t)+'</p>'+
-    '<div class="btns"><a class="b-or" href="'+link+'" target="_blank">💬 Message</a>'+(r.status==="pending"?'<button class="b-ok" onclick="doneReq(\''+r.id+'\')">Done ✅</button>':'')+'</div></div>';
+    '<div class="btns"><a class="b-or" href="'+link+'" target="_blank">💬 Message</a></div>'+
+    (r.status==="pending"?
+      '<label>Actual redeem code (admin yahan enter kare)</label><input type="text" id="rc-'+r.id+'" placeholder="Enter valid Free Fire redeem code">'+
+      '<button class="b-ok" onclick="deliverReq(\''+r.id+'\')">Send Code to User ✅</button>':
+      (r.redeemCode?'<div class="codebox">Delivered Code: '+esc(r.redeemCode)+'</div>':''))+'</div>';
   }).join("");
 }
 render();
