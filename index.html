@@ -62,7 +62,7 @@ var firebaseConfig = {
   measurementId: "G-789XZQXKBD"
 };
 var ADMIN_ID = "8547131118";   // admin ka Telegram ID
-var MONETAG_ZONE = "";         // Monetag Zone ID yahan daalo (khali ho to 10 sec ka test timer chalega)
+var MONETAG_ZONE = "12196759"; // Monetag Zone ID (khali ho to 10 sec ka test timer chalega)
 var TEST_SECONDS = 10;
 // =====================
 
@@ -115,7 +115,8 @@ function watch(id){
   if(busy)return;busy=true;
   var btn=$("w-"+id);
   function add(){db.collection("prog").doc(uid+"_"+id).set({uid:uid,codeId:id,n:FV.increment(1)},{merge:true}).then(function(){busy=false},function(e){busy=false;onErr(e)})}
-  if(MONETAG_ZONE&&window["show_"+MONETAG_ZONE]){
+  if(MONETAG_ZONE){
+    if(!window["show_"+MONETAG_ZONE]){busy=false;alert("Ad load nahi hua, thodi der baad dobara try karo.");return}
     if(btn)btn.textContent="Ad chal raha hai...";
     window["show_"+MONETAG_ZONE]().then(add).catch(function(){busy=false;alert("Ad nahi chala, dobara try karo.");render()});
   }else{
