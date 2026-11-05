@@ -197,8 +197,40 @@ function card(c){
       '<div class="note">✅ Redeem code delivered!</div>'+(userRequest.redeemCode?'<div class="codebox">🎁 Your Redeem Code: '+esc(userRequest.redeemCode)+'</div>':'<div class="note">Admin ne request complete kar di hai.</div>'):
       '<div class="note">✅ Request admin ko bhej di gayi. Code jaldi milega.</div>'):
       '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="pct"><span>Progress</span><span>'+pct.toFixed(0)+'%</span></div>'+
-      '<button class="watch" id="w-'+c.id+'" onclick="watch(\\''+c.id+'\\')" '+(full?'disabled':'')+'>▶ '+(full?'Unlocked':'Watch')+'</button>'+
-      '<button class="claim'+(full?' on':'')+'" onclick="claim(\\''+c.id+'\\')" '+(full?'':'disabled')+'>'+(full?'🔓':'🔒')+' Claim ₹'+esc(c.amount)+'</button>');
+      '<button class="watch" id="w-'+c.id+'" onclick="watch(\''+c.id+'\')" '+(full?'disabled':'')+'>▶ '+(full?'Unlocked':'Watch')+'</button>'+
+      '<button class="claim'+(full?' on':'')+'" onclick="claim(\''+c.id+'\')" '+(full?'':'disabled')+'>'+(full?'🔓':'🔒')+' Claim ₹'+esc(c.amount)+'</button>');
   return '<div class="card"><div class="img" style="background:'+bg+'"><div><small>REDEEM CODE</small><b>₹'+esc(c.amount)+'</b></div><div class="d">💎</div></div>'+rewardLine+controls+'</div>';
 }
+function adminCodes(){
+  var h='<button class="watch" style="margin-bottom:14px;padding:14px;font-size:17px" onclick="addCode()">➕ Naya Upcoming Reward Add Karo</button>';
+  if(!codes.length)h+='<div class="msg">Koi code nahi hai.</div>';
+  codes.forEach(function(c){
+    h+='<div class="card"><div class="two"><div><label>Main Reward (₹)</label><input type="number" id="a-'+c.id+'" value="'+esc(c.amount)+'"></div><div><label>Free Bonus (₹)</label><input type="number" id="b-'+c.id+'" value="'+esc(c.bonus||0)+'"></div></div>'+
+    '<div><label>Ads limit</label><input type="number" id="d-'+c.id+'" value="'+esc(c.ads||1)+'"></div>'+
+    '<label>Image link (optional)</label><input type="text" id="i-'+c.id+'" value="'+esc(c.imageUrl||"")+'" placeholder="https://...">'+
+    '<label class="chk"><input type="checkbox" id="o-'+c.id+'" '+(c.status==="active"?"checked":"")+'> Publish / Users ko claim karne do</label>'+
+    '<div class="note" style="color:#b78aff">Status: '+(c.status==="upcoming"?"UPCOMING":"PUBLISHED")+'</div>'+
+    '<div class="btns"><button class="b-ok" id="s-'+c.id+'" onclick="saveCode(\''+c.id+'\')">Save</button><button class="b-bad" onclick="delCode(\''+c.id+'\')">Delete</button></div></div>';
+  });
+  return h;
+}
 
+function adminReqs(){
+  if(!reqs.length)return '<div class="msg">Abhi koi request nahi aayi.</div>';
+  var p=reqs.filter(function(r){return r.status==="pending"}),d=reqs.filter(function(r){return r.status!=="pending"});
+  return p.concat(d).map(function(r){
+    var t=r.createdAt?r.createdAt.toDate().toLocaleString("en-IN"):"...";
+    var link=r.handle?"https://t.me/"+esc(r.handle):"tg://user?id="+esc(r.uid);
+    return '<div class="card"><div class="row"><div class="title">₹'+esc(r.amount)+'</div><span class="tag '+(r.status==="pending"?"t-p":"t-d")+'">'+(r.status==="pending"?"PENDING":"DONE")+'</span></div>'+
+    '<p style="margin:10px 0;line-height:1.6">👤 '+esc(r.name)+(r.handle?" (@"+esc(r.handle)+")":"")+'<br>🆔 '+esc(r.uid)+'<br>🕒 '+esc(t)+'</p>'+
+    '<div class="btns"><a class="b-or" href="'+link+'" target="_blank">💬 Message</a></div>'+
+    (r.status==="pending"?
+      '<label>Actual redeem code</label><input type="text" id="rc-'+r.id+'" placeholder="Enter valid redeem code">'+
+      '<button class="b-ok" onclick="deliverReq(\''+r.id+'\')">Send Code to User ✅</button>':
+      (r.redeemCode?'<div class="codebox">Delivered Code: '+esc(r.redeemCode)+'</div>':''))+'</div>';
+  }).join("");
+}
+render();
+</script>
+</body>
+</html>
