@@ -141,10 +141,20 @@ function claim(id){
 }
 
 // ---- admin actions ----
-function addCode(){var p=PAL[codes.length%PAL.length];db.collection("codes").add({amount:50,ads:1,active:true,c1:p[0],c2:p[1],imageUrl:"",order:Date.now()})}
+function addCode(){
+  var p=PAL[codes.length%PAL.length];
+  db.collection("codes").add({amount:500,bonus:100,ads:1,active:false,status:"upcoming",c1:p[0],c2:p[1],imageUrl:"",order:Date.now()});
+}
 function saveCode(id){
-  db.collection("codes").doc(id).update({amount:Number($("a-"+id).value)||0,ads:Math.max(1,Number($("d-"+id).value)||1),imageUrl:$("i-"+id).value.trim(),active:$("o-"+id).checked})
-   .then(function(){var b=$("s-"+id);if(b){b.textContent="Saved ✓";setTimeout(function(){b.textContent="Save"},1200)}},onErr);
+  var publish=$("o-"+id).checked;
+  db.collection("codes").doc(id).update({
+    amount:Number($("a-"+id).value)||0,
+    bonus:Math.max(0,Number($("b-"+id).value)||0),
+    ads:Math.max(1,Number($("d-"+id).value)||1),
+    imageUrl:$("i-"+id).value.trim(),
+    active:publish,
+    status:publish?"active":"upcoming"
+  }).then(function(){var b=$("s-"+id);if(b){b.textContent="Saved ✓";setTimeout(function(){b.textContent="Save"},1200)}},onErr);
 }
 function delCode(id){if(confirm("Ye code delete kar dein?"))db.collection("codes").doc(id).delete()}
 function deliverReq(id){
@@ -172,50 +182,23 @@ function render(src){
     return;
   }
   m.dataset.k="user";
-  var act=codes.filter(function(c){return c.active!==false});
+  var act=codes.filter(function(c){return c.status==="upcoming" || c.active!==false});
   m.innerHTML=act.length?act.map(card).join(""):'<div class="msg">Abhi koi redeem code available nahi hai.</div>';
 }
 function card(c){
+  var upcoming=c.status==="upcoming";
   var n=prog[c.id]||0,ads=c.ads||1,full=n>=ads,pct=Math.min(100,n/ads*100);
   var userRequest=reqs.filter(function(r){return r.codeId===c.id&&r.uid===uid})[0];
-  var pend=userRequest&&userRequest.status==="pending";
-  var bg=c.imageUrl?'url("'+esc(c.imageUrl)+'") center/cover':'linear-gradient(135deg,'+esc(c.c1||"#e85d0c")+','+esc(c.c2||"#f2b200")+')';
-  return '<div class="card"><div class="img" style="background:'+bg+'"><div><small>REDEEM CODE</small><b>₹'+esc(c.amount)+'</b></div><div class="d">💎</div></div>'+
-  '<div class="row"><div class="title">⭐ Star Bonus</div><div class="pill">+₹'+esc(c.amount)+'</div></div>'+
-  '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="pct"><span>Progress</span><span>'+pct.toFixed(0)+'%</span></div>'+
-  (userRequest?(userRequest.status==="done"?
-    '<div class="note">✅ Redeem code delivered!</div>'+(userRequest.redeemCode?'<div class="codebox">🎁 Your Redeem Code: '+esc(userRequest.redeemCode)+'</div>':'<div class="note">Admin ne request complete kar di hai.</div>'):
-    '<div class="note">✅ Request admin ko bhej di gayi. Code jaldi milega.</div>'):
-    '<button class="watch" id="w-'+c.id+'" onclick="watch(\''+c.id+'\')" '+(full?'disabled':'')+'>▶ '+(full?'Unlocked':'Watch')+'</button>'+
-    '<button class="claim'+(full?' on':'')+'" onclick="claim(\''+c.id+'\')" '+(full?'':'disabled')+'>'+(full?'🔓':'🔒')+' Claim ₹'+esc(c.amount)+'</button>')+'</div>';
+  var bg=c.imageUrl?'url("'+esc(c.imageUrl)+'") center/cover':'linear-gradient(135deg,'+esc(c.c1||"#7c3aed")+','+esc(c.c2||"#c026d3")+')';
+  var bonus=Number(c.bonus)||0;
+  var rewardLine=bonus?'<div class="row" style="margin-top:12px"><div class="title">⭐ Star Bonus</div><div class="pill">+₹'+esc(bonus)+' FREE</div></div><div class="pct" style="margin-top:8px"><span>Total Reward</span><strong>₹'+esc((Number(c.amount)||0)+bonus)+'</strong></div>':'<div class="row"><div class="title">⭐ Star Bonus</div><div class="pill">+₹'+esc(c.amount)+'</div></div>';
+  var controls=upcoming?'<div class="note" style="color:#b78aff;text-align:center;padding:14px;background:#30213d;border-radius:14px">🔒 COMING SOON</div>':
+    (userRequest?(userRequest.status==="done"?
+      '<div class="note">✅ Redeem code delivered!</div>'+(userRequest.redeemCode?'<div class="codebox">🎁 Your Redeem Code: '+esc(userRequest.redeemCode)+'</div>':'<div class="note">Admin ne request complete kar di hai.</div>'):
+      '<div class="note">✅ Request admin ko bhej di gayi. Code jaldi milega.</div>'):
+      '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="pct"><span>Progress</span><span>'+pct.toFixed(0)+'%</span></div>'+
+      '<button class="watch" id="w-'+c.id+'" onclick="watch(\\''+c.id+'\\')" '+(full?'disabled':'')+'>▶ '+(full?'Unlocked':'Watch')+'</button>'+
+      '<button class="claim'+(full?' on':'')+'" onclick="claim(\\''+c.id+'\\')" '+(full?'':'disabled')+'>'+(full?'🔓':'🔒')+' Claim ₹'+esc(c.amount)+'</button>');
+  return '<div class="card"><div class="img" style="background:'+bg+'"><div><small>REDEEM CODE</small><b>₹'+esc(c.amount)+'</b></div><div class="d">💎</div></div>'+rewardLine+controls+'</div>';
 }
-function adminCodes(){
-  var h='<button class="watch" style="margin-bottom:14px;padding:14px;font-size:17px" onclick="addCode()">➕ Naya Code Add Karo</button>';
-  if(!codes.length)h+='<div class="msg">Koi code nahi hai.</div>';
-  codes.forEach(function(c){
-    h+='<div class="card"><div class="two"><div><label>Price (₹)</label><input type="number" id="a-'+c.id+'" value="'+esc(c.amount)+'"></div><div><label>Ads limit</label><input type="number" id="d-'+c.id+'" value="'+esc(c.ads||1)+'"></div></div>'+
-    '<label>Image link (optional)</label><input type="text" id="i-'+c.id+'" value="'+esc(c.imageUrl||"")+'" placeholder="https://...">'+
-    '<label class="chk"><input type="checkbox" id="o-'+c.id+'" '+(c.active!==false?"checked":"")+'> Users ko dikhao (ON)</label>'+
-    '<div class="btns"><button class="b-ok" id="s-'+c.id+'" onclick="saveCode(\''+c.id+'\')">Save</button><button class="b-bad" onclick="delCode(\''+c.id+'\')">Delete</button></div></div>';
-  });
-  return h;
-}
-function adminReqs(){
-  if(!reqs.length)return '<div class="msg">Abhi koi request nahi aayi.</div>';
-  var p=reqs.filter(function(r){return r.status==="pending"}),d=reqs.filter(function(r){return r.status!=="pending"});
-  return p.concat(d).map(function(r){
-    var t=r.createdAt?r.createdAt.toDate().toLocaleString("en-IN"):"...";
-    var link=r.handle?"https://t.me/"+esc(r.handle):"tg://user?id="+esc(r.uid);
-    return '<div class="card"><div class="row"><div class="title">₹'+esc(r.amount)+'</div><span class="tag '+(r.status==="pending"?"t-p":"t-d")+'">'+(r.status==="pending"?"PENDING":"DONE")+'</span></div>'+
-    '<p style="margin:10px 0;line-height:1.6">👤 '+esc(r.name)+(r.handle?" (@"+esc(r.handle)+")":"")+'<br>🆔 '+esc(r.uid)+'<br>🕒 '+esc(t)+'</p>'+
-    '<div class="btns"><a class="b-or" href="'+link+'" target="_blank">💬 Message</a></div>'+
-    (r.status==="pending"?
-      '<label>Actual redeem code (admin yahan enter kare)</label><input type="text" id="rc-'+r.id+'" placeholder="Enter valid Free Fire redeem code">'+
-      '<button class="b-ok" onclick="deliverReq(\''+r.id+'\')">Send Code to User ✅</button>':
-      (r.redeemCode?'<div class="codebox">Delivered Code: '+esc(r.redeemCode)+'</div>':''))+'</div>';
-  }).join("");
-}
-render();
-</script>
-</body>
-</html>
+
